@@ -7,6 +7,7 @@ import scipy.sparse
 import random
 from scipy.sparse import coo_matrix
 
+from saving import save_sparse_csr, save_item
 from secret import pw
 
 # Get all the user-pattern tuples who have done between 10 and 100 projects:
@@ -30,11 +31,18 @@ user_totrain_dict = {k: g['pattern_id'].tolist() for k, g in training_users.grou
 pattern_totrain_dict = {k: g.index.tolist() for k, g in training_users.groupby('pattern_id')}
 user_totest_dict = {k: g['pattern_id'].tolist() for k, g in testing_users.groupby(level=0)}
 
+save_item('data/testing_users', user_totest_dict)
+trained_patterns = pattern_totrain_dict.keys()
+save_item('data/trained_on_patterns', trained_patterns)
+
 del user_dict
 
 user_translate = {user:i for i, user in enumerate(user_totrain_dict)}
 pattern_translate = {pattern: i for i, pattern in enumerate(pattern_totrain_dict)}
 pattern_tran_reverse = {k : g for g, k in pattern_translate.items()}
+
+save_item('data/pattern_translate', pattern_translate)
+save_item('data/pattern_tran_reverse', pattern_tran_reverse)
 
 row = training_users.index.map(lambda x : user_translate[x])
 column = training_users.pattern_id.map(lambda x : pattern_translate[x])
@@ -57,12 +65,30 @@ orde = np.argsort(d)[::-1]
 pop_ranks = {}
 for i, patt in enumerate(orde):
 	pop_ranks[pattern_tran_reverse[patt]] = i + 1
+	
+save_item('data/popularity', pop_ranks)
 
 D = scipy.sparse.dia_matrix((D,[0]), (len(D),len(D)))
 p = D.dot(S.T)
 del S
 predictor = p.dot(p.T)
 del p
+
+save_sparse_csr('data/predictor', predictor)
+
+
+
+con = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8');
+pattern_df = pd.read_sql("SELECT pattern_id, craft_id, categories FROM Patterns;", con)
+con.close()
+
+pattern_library = {k : g['pattern_id'].tolist() for k, g in pattern_df.groupby('craft_id')}
+
+knit_patterns = list(set(trained_patterns).intersection(set(pattern_library[2])))
+crochet_patterns = list(set(trained_patterns).intersection(set(pattern_library[1])))
+
+save_item('data/knitting_patterns', knit_patterns)
+save_item('data/crocheting_patterns', crochet_patterns)
 	
 #def model_rank(user_id):
 	#user_projects = [pattern_translate[project] for project in user_totest_dict[user_id] if project in pattern_totrain_dict]
