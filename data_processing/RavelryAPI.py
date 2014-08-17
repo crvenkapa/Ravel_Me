@@ -73,7 +73,7 @@ def get_queues(filename, users):
 def get_distinct_pattern_ids():
 	con = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8')
 	c = con.cursor()
-	c.execute('SELECT DISTINCT pattern_id FROM Users')
+	c.execute('SELECT DISTINCT pattern_id FROM Projects')
 	return [row[0] for row in c]
 				
 def get_patterns(filename, patterns):
