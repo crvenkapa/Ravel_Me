@@ -3,10 +3,11 @@ import requests
 import json
 import os
 import sys
+import MySQLdb as mdb
 
 #This is a group of helper functions to call the Ravelry.com API. 
 
-from secret import Akey, Pkey
+from secret import Akey, Pkey, pw
 
 s = requests.Session()
 s.auth = (Akey, Pkey)
@@ -68,6 +69,12 @@ def get_queues(filename, users):
 			except:
 				print(sys.exc_info()[0])
 				print(user_id, username)
+
+def get_distinct_pattern_ids():
+	con = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8')
+	c = con.cursor()
+	c.execute('SELECT DISTINCT pattern_id FROM Users')
+	return [row[0] for row in c]
 				
 def get_patterns(filename, patterns):
 	'''This function gets and saves into filename a list of patterns 
@@ -89,5 +96,6 @@ if __name__ == "__main__":
 	users = slice_users('users.csv', 0, 20)
 	get_projects('user_projects.csv', users)
 	get_queues('user_queues.csv', users)
+	pattern_ids = get_distinct_pattern_ids()
 	get_patterns('patters.csv', pattern_ids)
 	
