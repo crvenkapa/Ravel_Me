@@ -1,34 +1,42 @@
 import redis
+import scipy.sparse
 from json import loads, dumps
 from saving import load_sparse_csr, unpickle
 import MySQLdb as mdb
 import numpy as np
 from secret import pw
+import time
 
-def recommendations(username, craft):
+def recommendations(username):
     db = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8')
+    
     with db:    
         cur = db.cursor()
         cur.execute("SELECT pattern_id FROM Projects WHERE username = %s AND pattern_id IS NOT Null;", (username,))
         projects = [int(row[0]) for row in cur]
-        
+    
     user_projects = [pattern_translate[project] for project in projects if project in trained_patterns]
-    prediction = sum([predictor[project,:] for project in user_projects])
+    prediction = predictor[user_projects].sum(axis=0)
+    prediction = scipy.sparse.csr_matrix(prediction)
     
-    ordered = np.argsort(np.squeeze(prediction.toarray()))[::-1]
+    model_prediction = np.argsort(prediction.data)[::-1]
+    model_prediction = prediction.indices[model_prediction]
+    model_ranks = [pattern_tran_reverse[pattern] for pattern in model_prediction]
+    model_set = set(model_ranks)
+    popularity_prediction = [p for p in pop_ranks if p not in model_set]
+    model_ranks.extend(popularity_prediction)
     
-    ordered = [pattern_tran_reverse[pattern] for pattern in ordered]
+    return model_ranks
     
-    if craft == 'knit':
-        knitting_predictions = [pattern for pattern in ordered if pattern in knitting_patterns]
-        knitting_recs = [pattern for pattern in knitting_predictions if pattern not in projects]
-        return knitting_recs[:5]
-        
-    if craft == 'crochet':
-        crocheting_predictions = [pattern for pattern in ordered if pattern in crocheting_patterns] 
-        crocheting_recs = [pattern for pattern in crocheting_predictions if pattern not in projects]
-        return crocheting_recs[:5]
-
+def top_five(ranks, craft, category, L=5):
+	recommendations = []
+	for pattern_id in ranks:
+		if pattern_id in crafts and pattern_id in categories:
+			if crafts[pattern_id] == craft and categories[pattern_id] == category:
+				recommendations.append(pattern_id)
+		if len(recommendations) >= L: break
+	return recommendations
+    
 
 def run():
     q = redis.Redis(unix_socket_path='/var/run/redis/redis.sock')
@@ -38,11 +46,13 @@ def run():
         recs = recommendations(*args)
         q.rpush("results", dumps(recs))
 
-if __name__=="__main__":
-    predictor = load_sparse_csr('predictor.npz')
-    pattern_translate = unpickle('pattern_translate')
-    pattern_tran_reverse = unpickle('pattern_tran_reverse')
-    trained_patterns = set(unpickle('trained_on_patterns'))
-    knitting_patterns = set(unpickle('knitting_patterns'))
-    crocheting_patterns = set(unpickle('crocheting_patterns'))
+if __name__ == "__main__":
+    predictor = load_sparse_csr('data/predictor.npz')
+    pattern_translate = unpickle('data/pattern_translate')
+    pattern_tran_reverse = unpickle('data/pattern_tran_reverse')
+    popularity = unpickle('data/popularity')
+    pop_ranks = sorted(popularity, key = popularity.get, reverse=False)
+    trained_patterns = set(unpickle('data/trained_on_patterns'))
+    crafts = unpickle('data/crafts')
+    categories = unpickle('data/categories')
     run()
