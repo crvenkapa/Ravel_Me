@@ -7,26 +7,32 @@ import numpy as np
 from secret import pw
 import time
 
+cache = {}
+
 def recommendations(username):
-    db = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8')
-    
-    with db:    
-        cur = db.cursor()
-        cur.execute("SELECT pattern_id FROM Projects WHERE username = %s AND pattern_id IS NOT Null;", (username,))
-        projects = [int(row[0]) for row in cur]
-    
-    user_projects = [pattern_translate[project] for project in projects if project in trained_patterns]
-    prediction = predictor[user_projects].sum(axis=0)
-    prediction = scipy.sparse.csr_matrix(prediction)
-    
-    model_prediction = np.argsort(prediction.data)[::-1]
-    model_prediction = prediction.indices[model_prediction]
-    model_ranks = [pattern_tran_reverse[pattern] for pattern in model_prediction]
-    model_set = set(model_ranks)
-    popularity_prediction = [p for p in pop_ranks if p not in model_set]
-    model_ranks.extend(popularity_prediction)
-    
-    return model_ranks
+	if username in cache:
+		return cache[username]
+	else:
+		db = mdb.connect('localhost', 'iva', pw, 'Ravelry', charset='utf8')
+		
+		with db:    
+			cur = db.cursor()
+			cur.execute("SELECT pattern_id FROM Projects WHERE username = %s AND pattern_id IS NOT Null;", (username,))
+			projects = [int(row[0]) for row in cur]
+		
+		user_projects = [pattern_translate[project] for project in projects if project in trained_patterns]
+		prediction = predictor[user_projects].sum(axis=0)
+		prediction = scipy.sparse.csr_matrix(prediction)
+		
+		model_prediction = np.argsort(prediction.data)[::-1]
+		model_prediction = prediction.indices[model_prediction]
+		model_ranks = [pattern_tran_reverse[pattern] for pattern in model_prediction]
+		model_set = set(model_ranks)
+		popularity_prediction = [p for p in pop_ranks if p not in model_set]
+		model_ranks.extend(popularity_prediction)
+		cache[username] = model_ranks
+		
+		return model_ranks
     
 def top_five(ranks, craft, category, L=5):
 	recommendations = []
@@ -43,8 +49,9 @@ def run():
 
     while True:
         args = loads(q.blpop("tasks")[1].decode('utf-8'))
-        recs = recommendations(*args)
-        q.rpush("results", dumps(recs))
+        recs = recommendations(args[0])
+        patterns = top_five(recs, args[1], args[2])
+        q.rpush("results", dumps(patterns))
 
 if __name__ == "__main__":
     predictor = load_sparse_csr('data/predictor.npz')
