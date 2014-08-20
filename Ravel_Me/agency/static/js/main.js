@@ -9,7 +9,7 @@ $(document).ready(function(){
 				projects = data.projects;
                 $("#projectbox tr").remove();
                  for (i=0; i < projects.length; i++) {
-					$("#projectbox table").append('<tr><td>' + projects[i] + '</td></tr>'); 
+					$("#projectbox table").append('<tr><td>' + projects[i]['pic'] + '</td><td>' + projects[i]['name'] + '</td></tr>'); 
 				}
 			}
 		})

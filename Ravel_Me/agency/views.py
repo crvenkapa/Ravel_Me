@@ -25,9 +25,11 @@ def projects_json():
 	with db:
 		cur = db.cursor()
 		# FIX IT: The order of recommendations is not preserved:
-		cur.execute("SELECT pattern_name, pattern_id FROM Patterns WHERE pattern_id IN (%s,%s,%s,%s,%s);", tuple(recs))
+		cur.execute("SELECT pattern_name, pattern_id, pattern_photo FROM Photos WHERE pattern_id IN (%s,%s,%s,%s,%s);", tuple(recs))
 		base_url = 'http://www.ravelry.com/patterns/library/'
-		projects = ["<a href={0}{1}>{2}</a>".format(base_url, name[1], name[0].encode('utf-8')) for name in cur]
+		projects = []
+		for name in cur:
+			projects.append(dict(name="<a href={0}{1}>{2}</a>".format(base_url, name[1], name[0].encode('utf-8')), pic="<img src={0}>".format(name[2])))
 		return jsonify(dict(projects=projects))
  
 @agency.route("/jquery")
