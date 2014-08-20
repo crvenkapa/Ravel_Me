@@ -19,7 +19,13 @@ def recommendations(username):
 			cur = db.cursor()
 			cur.execute("SELECT pattern_id FROM Projects WHERE username = %s AND pattern_id IS NOT Null;", (username,))
 			projects = [int(row[0]) for row in cur]
-		
+
+		#user_projects = []
+		#user_projects_2  = []
+		#for project in projects:
+			#if project in trained_patterns:
+				#user_projects.append(pattern_translate[project])
+				#user_projects_2.append(project)
 		user_projects = [pattern_translate[project] for project in projects if project in trained_patterns]
 		prediction = predictor[user_projects].sum(axis=0)
 		prediction = scipy.sparse.csr_matrix(prediction)
@@ -30,6 +36,7 @@ def recommendations(username):
 		model_set = set(model_ranks)
 		popularity_prediction = [p for p in pop_ranks if p not in model_set]
 		model_ranks.extend(popularity_prediction)
+		model_ranks = [pattern for pattern in model_ranks if pattern not in set(projects)]
 		cache[username] = model_ranks
 		
 		return model_ranks
