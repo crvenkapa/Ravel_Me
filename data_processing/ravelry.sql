@@ -57,34 +57,7 @@ CREATE TABLE Patterns(
 	categories text,
 	posted_at date);
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-CREATE INDEX index_pattern ON Patterns (pattern_id);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+CREATE TABLE Photos(
+	pattern_id integer PRIMARY KEY,
+	pattern_name text,
+	pattern_photo text);
