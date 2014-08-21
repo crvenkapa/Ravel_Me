@@ -10,7 +10,6 @@ def scores(user_ranks, L=50):
 	q1 = 0.0
 	q2 = 0.0
 	n = 0
-	n2 = 0
 	for user in user_ranks:	
 		for rank_pair in user_ranks[user]:
 			n = n + 1
@@ -31,8 +30,8 @@ if __name__ == "__main__":
 	m_v_p_top2 = (m2/total1, p2/total1)
 	ind = np.array([1,2])
 	width = 0.5
-	p2 = plt.bar(ind, m_v_p_top2, width)
-	p1 = plt.bar(ind, model_v_popularity, width, color='g')
+	bar1 = plt.bar(ind, m_v_p_top2, width)
+	bar2 = plt.bar(ind, model_v_popularity, width, color='g')
 	plt.xlim([0.75,2.75])
 	plt.ylim([0,.65])
 	plt.xticks(ind+width/2., ('Model Accuracy', 'Popularity Accuracy'))
