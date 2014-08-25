@@ -28,11 +28,28 @@ if __name__ == "__main__":
 	total1, m1, p1, m2, p2 = scores(test_users)
 	model_v_popularity = (m1/total1, p1/total1)
 	m_v_p_top2 = (m2/total1, p2/total1)
+
+	# Makes subplots:
+	fig = plt.figure()
+	fig.patch.set_alpha(0)
+	ax1 = fig.add_subplot(2,1,2)
+
 	ind = np.array([1,2])
 	width = 0.5
-	bar1 = plt.bar(ind, m_v_p_top2, width)
-	bar2 = plt.bar(ind, model_v_popularity, width, color='g')
-	plt.xlim([0.75,2.75])
-	plt.ylim([0,.65])
-	plt.xticks(ind+width/2., ('Model Accuracy', 'Popularity Accuracy'))
-	plt.legend( (p1[0], p2[0]), ('Percentage of ranks in top 0.02%', 'Winning percentage'))
+	ax1.bar(ind, model_v_popularity, width)
+	ax1.xaxis.set_ticks([1.25, 2.25])
+	ax1.xaxis.set_ticklabels(['Personalized Accuracy', 'Popularity Accuracy'])
+	ax1.set_xlim([0.75,2.75])
+	ax1.set_title('Percentage of Test Ranks in Top 0.02%')
+
+	ax2 = fig.add_subplot(2,1,1)
+	ax2.barh(0.25, m2/total1, height=0.5, left=0)
+	ax2.barh(0.25, p2/total1, height=0.5, left=m2/total1, color='g')
+	ax2.set_ylim([0,1])
+	ax2.yaxis.set_ticks([])
+	ax2.set_title('Percentage of Higher Ranking Test Ranks')
+
+	fig.savefig('val.png', facecolor=fig.get_facecolor())
+
+
+
