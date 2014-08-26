@@ -1,4 +1,4 @@
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, g
 from agency import agency
 import MySQLdb as mdb
 import numpy as np
@@ -10,6 +10,19 @@ from secret import pw
 db = mdb.connect("localhost", "iva", pw, db="Ravelry", charset='utf8')
 q = redis.Redis(unix_socket_path='/var/run/redis/redis.sock')
 username_list = set(unpickle('username_list'))
+
+def get_db():
+	db = getattr(g, '_database', None)
+	if db is None:
+		db = g._database = mdb.connect("localhost", "iva", pw, db="Ravelry", charset='utf8')
+	return db
+
+@agency.teardown_appcontext
+def close_connection(exception):
+	db = getattr(g, '_database', None)
+	if db is not None:
+		db.close()
+
 
 @agency.route('/')
 @agency.route('/index')
@@ -24,6 +37,7 @@ def projects_json():
 		category = request.args.get('category')
 		q.rpush("tasks", dumps([user, craft, category]))
 		recs = loads(q.blpop("results")[1].decode('utf-8'))
+		db = get_db()
 		with db:
 			cur = db.cursor()
 			# FIX IT: The order of recommendations is not preserved:
